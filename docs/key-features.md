@@ -12,8 +12,8 @@
 The package provides several main analysis workflows:
 
 1. **Data Import and Processing**
-   - Convert VCF files to diem format using [`vcf2diem`](src/diem/vcf2diembeds.py)
-   - Read diem BED format files with [`read_diem_bed`](src/diem/io.py)
+   - Convert VCF files to diem format using [`vcf2diem`](src/diempy/vcf2diembeds.py)
+   - Read diem BED format files with [`read_diem_bed`](src/diempy/io.py)
    - Handle masking of individuals and sites
    - Handling correct ploidy information, e.g. with regard to sex chromosomes
 

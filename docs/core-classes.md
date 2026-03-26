@@ -16,14 +16,14 @@ The central data structure that holds:
 - **Contigs** which are per-chromosome per-interval lists of tracts 
 
 Key methods:
-- [`polarize()`](src/diem/diemtype.py): Run polarization analysis
-- [`apply_threshold()`](src/diem/diemtype.py): Filter markers by diagnostic index
-- [`smooth()`](src/diem/diemtype.py): Apply kernel smoothing
-- [`sort()`](src/diem/diemtype.py): Sort individuals by hybrid index
-- ['create_contig_matrix()](src/diem/diemtype.py): builds the contigs from the processed data
+- [`polarize()`](src/diempy/diemtype.py): Run polarization analysis
+- [`apply_threshold()`](src/diempy/diemtype.py): Filter markers by diagnostic index
+- [`smooth()`](src/diempy/diemtype.py): Apply kernel smoothing
+- [`sort()`](src/diempy/diemtype.py): Sort individuals by hybrid index
+- ['create_contig_matrix()](src/diempy/diemtype.py): builds the contigs from the processed data
 
 ## Contig Class
-The [`Contig`](src/diem/contigs.py) class represents a collection of genomic intervals for a specific individual and chromosome, essentially describing the complete ancestry structure along that chromosome.
+The [`Contig`](src/diempy/contigs.py) class represents a collection of genomic intervals for a specific individual and chromosome, essentially describing the complete ancestry structure along that chromosome.
 
 Key attributes:
 - **chrName**: Chromosome name
@@ -32,11 +32,11 @@ Key attributes:
 - **num_intervals**: Number of intervals in the contig
 
 Key methods:
-- [`printIntervals()`](src/diem/contigs.py): Display interval information in a readable format
-- [`get_my_intervals_of_state()`](src/diem/contigs.py): Filter intervals by ancestry state
+- [`printIntervals()`](src/diempy/contigs.py): Display interval information in a readable format
+- [`get_my_intervals_of_state()`](src/diempy/contigs.py): Filter intervals by ancestry state
 
 ## Interval Class
-The [`Interval`](src/diem/contigs.py) class represents a contiguous genomic region with consistent ancestry state for a specific individual and chromosome.
+The [`Interval`](src/diempy/contigs.py) class represents a contiguous genomic region with consistent ancestry state for a specific individual and chromosome.
 
 Key attributes:
 - **chrName**: Chromosome name
@@ -46,5 +46,5 @@ Key attributes:
 - **state**: Ancestry state of the interval (0=uncalled, 1-3=called states)
 
 Key methods:
-- [`span()`](src/diem/contigs.py): Calculate and return the physical span of the interval
-- [`mapSpan(chrLength)`](src/diem/contigs.py): Calculate the relative span as fraction of chromosome length. chrLength must be provided
+- [`span()`](src/diempy/contigs.py): Calculate and return the physical span of the interval
+- [`mapSpan(chrLength)`](src/diempy/contigs.py): Calculate the relative span as fraction of chromosome length. chrLength must be provided
