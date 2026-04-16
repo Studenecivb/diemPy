@@ -35,6 +35,10 @@ diemColors5 = [
 ]
 bounds5 = [-1.5,-0.5,.5,1.5,2.5,3.5]
 
+AXIS_LABEL_FONTSIZE = 12
+TICK_LABEL_FONTSIZE = 11
+AXIS_FONTWEIGHT = 'bold'
+
 
 '''
 Some utility functions for working with the data and results
@@ -70,6 +74,8 @@ def plot_painting(diemMatrix,names=None,figSize = None,outputPath=None):
     else:
         ax.set_yticks([])
         ax.set_yticklabels([])
+
+    _style_axis_text(ax)
     
     if outputPath is not None:
         plt.savefig(outputPath,bbox_inches='tight')
@@ -140,7 +146,7 @@ def plot_painting_with_positions(diemMatrix, positions,markerWidth=25,figSize = 
         ax.set_yticks([])
         ax.set_yticklabels([])
 
-    ax.set_xlabel('Position')
+    ax.set_xlabel('Position', fontsize=AXIS_LABEL_FONTSIZE, fontweight=AXIS_FONTWEIGHT)
     
     # Set x-axis limits to show the full range
     ax.set_xlim(positions[0] - (positions[-1] - positions[0]) * 0.05, 
@@ -148,12 +154,24 @@ def plot_painting_with_positions(diemMatrix, positions,markerWidth=25,figSize = 
     
     # Format x-axis to show positions in a readable way
     ax.ticklabel_format(style='scientific', axis='x', scilimits=(0,0))
+    _style_axis_text(ax)
     
     if outputPath is not None:
         plt.savefig(outputPath,bbox_inches='tight')
 
     #plt.tight_layout()
     plt.show()
+
+
+def _style_axis_text(ax):
+    ax.tick_params(axis='both', which='major', labelsize=TICK_LABEL_FONTSIZE)
+    plt.setp(ax.get_xticklabels(), fontweight=AXIS_FONTWEIGHT)
+    plt.setp(ax.get_yticklabels(), fontweight=AXIS_FONTWEIGHT)
+
+    # Keep the scientific notation offset text readable too.
+    x_offset_text = ax.xaxis.get_offset_text()
+    x_offset_text.set_fontsize(TICK_LABEL_FONTSIZE)
+    x_offset_text.set_fontweight(AXIS_FONTWEIGHT)
 
 def characterize_markers(dt):
     '''
