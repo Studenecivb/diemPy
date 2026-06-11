@@ -4,6 +4,7 @@ from __future__ import annotations
 # ---- stdlib ----
 from collections import defaultdict
 from itertools import groupby, chain
+import multiprocessing as mp
 
 
 # ---- numpy / pandas ----
@@ -20,7 +21,7 @@ from matplotlib.colors import to_rgb, LinearSegmentedColormap
 
 import time
 from dataclasses import dataclass
-from typing import Iterable, Callable, Dict, Tuple, List, Optional
+from typing import Iterable, Callable, Dict, Tuple, List, Optional, Sequence
 
 # ---- diem internals ----
 from . import smooth
@@ -4756,6 +4757,146 @@ def prefill_slider_cache(
         pbar.close()
 
 
+def _validate_polarized_diemtype_for_plots(diem_obj):
+    """
+    Validate DiemType-like object has the minimum polarized data required
+    to build plotting prep structures directly in memory.
+    """
+    required_attrs = [
+        "DMBC",
+        "DIByChr",
+        "posByChr",
+        "chrNames",
+        "chrLengths",
+        "indNames",
+    ]
+    missing = [name for name in required_attrs if not hasattr(diem_obj, name)]
+    if missing:
+        raise ValueError(
+            "DiemType object is missing required attributes for plotting: "
+            + ", ".join(missing)
+        )
+
+    if diem_obj.DIByChr is None:
+        raise ValueError(
+            "DiemType object is not polarized. DIByChr is None. "
+            "Run polarize() first."
+        )
+
+    n_chr = len(diem_obj.chrNames)
+    if not (len(diem_obj.DMBC) == len(diem_obj.DIByChr) == len(diem_obj.posByChr) == n_chr):
+        raise ValueError(
+            "Inconsistent chromosome-wise lengths across DMBC, DIByChr, posByChr, and chrNames."
+        )
+
+    n_inds = len(diem_obj.indNames)
+    for chr_i in range(n_chr):
+        state_mat = np.asarray(diem_obj.DMBC[chr_i])
+        di = np.asarray(diem_obj.DIByChr[chr_i])
+        poses = np.asarray(diem_obj.posByChr[chr_i])
+
+        if state_mat.ndim != 2:
+            raise ValueError(f"DMBC[{chr_i}] must be a 2D array")
+        if state_mat.shape[0] != n_inds:
+            raise ValueError(
+                f"DMBC[{chr_i}] has {state_mat.shape[0]} individuals but "
+                f"indNames has {n_inds}"
+            )
+        if not (state_mat.shape[1] == di.shape[0] == poses.shape[0]):
+            raise ValueError(
+                f"Chromosome {diem_obj.chrNames[chr_i]} has inconsistent site counts: "
+                f"DMBC sites={state_mat.shape[1]}, DI={di.shape[0]}, positions={poses.shape[0]}"
+            )
+
+
+def _state_matrix_to_diem_site_strings(state_matrix):
+    """
+    Convert one chromosome state matrix (nInds x nSites, states in {0,1,2,3})
+    into BED-style diem_genotype site strings (prefix 'S', then chars in {_,0,1,2}).
+    """
+    state_mat = np.asarray(state_matrix)
+    chars = np.full(state_mat.shape, "_", dtype="<U1")
+    chars[state_mat == 1] = "0"
+    chars[state_mat == 2] = "1"
+    chars[state_mat == 3] = "2"
+    return ["S" + "".join(site_chars) for site_chars in chars.T]
+
+
+def _build_plot_inputs_from_diemtype(diem_obj):
+    """
+    Build the same core inputs used by DiemPlotPrep without reading BED/meta files.
+
+    Returns:
+        polarised_data (pd.DataFrame): columns chrom, start, DI, diem_genotype
+        ind_ids (np.ndarray)
+        chr_ref_lengths (np.ndarray)
+        chr_relative_rec_rates (np.ndarray)
+    """
+    _validate_polarized_diemtype_for_plots(diem_obj)
+
+    records = []
+    for chr_i, chr_name in enumerate(diem_obj.chrNames):
+        di = np.asarray(diem_obj.DIByChr[chr_i], dtype=float)
+        poses = np.asarray(diem_obj.posByChr[chr_i], dtype=int)
+        starts = np.maximum(poses - 1, 0)
+        site_strings = _state_matrix_to_diem_site_strings(diem_obj.DMBC[chr_i])
+
+        for j in range(len(di)):
+            records.append(
+                {
+                    "chrom": chr_name,
+                    "start": int(starts[j]),
+                    "DI": float(di[j]),
+                    "diem_genotype": site_strings[j],
+                }
+            )
+
+    polarised_data = pd.DataFrame.from_records(
+        records,
+        columns=["chrom", "start", "DI", "diem_genotype"],
+    )
+
+    ind_ids = np.asarray(diem_obj.indNames)
+    chr_ref_lengths = np.asarray(diem_obj.chrLengths)
+
+    rr_dict = getattr(diem_obj, "relativeRecRateDict", None)
+    if rr_dict is None:
+        chr_relative_rec_rates = np.ones(len(diem_obj.chrNames), dtype=float)
+    else:
+        chr_relative_rec_rates = np.asarray(
+            [float(rr_dict.get(chr_name, 1.0)) for chr_name in diem_obj.chrNames],
+            dtype=float,
+        )
+
+    return polarised_data, ind_ids, chr_ref_lengths, chr_relative_rec_rates
+
+
+def diemPlotPrepFromDiemType(plot_theme, diem_obj, di_threshold, genome_pixels, ticks, smooth=None):
+    """
+    Prepare iris/long plotting data directly from a polarized DiemType object.
+
+    This bypasses BED/meta file reads and reuses the same downstream DiemPlotPrep
+    logic used by diemPlotPrepFromBedMeta.
+    """
+    pzbed, bmIndIDs, chrRefLengths, chrRelativeRecRates = _build_plot_inputs_from_diemtype(diem_obj)
+
+    prep = DiemPlotPrep(
+        plot_theme=plot_theme,
+        ind_ids=bmIndIDs,
+        chrRefLengths=chrRefLengths,
+        polarised_data=pzbed,
+        di_threshold=di_threshold,
+        diemStringPyCol=10,
+        di_column=13,
+        genome_pixels=genome_pixels,
+        ticks=ticks,
+        chrRelativeRecRates=chrRelativeRecRates,
+        smooth=smooth,
+    )
+
+    return prep
+
+
 def diemPlotPrepFromBedMeta(plot_theme, bed_file_path, meta_file_path,di_threshold,genome_pixels,ticks, smooth = None):
 
     pzbed, bmIndIDs, chrRefLengths, chrRelativeRecRates = read_diem_bed_4_plots(bed_file_path, meta_file_path)
@@ -5032,6 +5173,34 @@ def diemIrisFromPlotPrep(prepped, chrom_indices=None):
         chrom_indices=chrom_indices,
     )
 
+
+def diemIrisFromDiemType(
+    plot_theme,
+    diem_obj,
+    di_threshold,
+    genome_pixels,
+    ticks,
+    smooth=None,
+    chrom_indices=None,
+):
+    """
+    Convenience wrapper: build plotting prep from a polarized DiemType object
+    and render an iris plot in one call.
+
+    Returns:
+        DiemPlotPrep object used for plotting.
+    """
+    prepped = diemPlotPrepFromDiemType(
+        plot_theme=plot_theme,
+        diem_obj=diem_obj,
+        di_threshold=di_threshold,
+        genome_pixels=genome_pixels,
+        ticks=ticks,
+        smooth=smooth,
+    )
+    diemIrisFromPlotPrep(prepped, chrom_indices=chrom_indices)
+    return prepped
+
 """________________________________________ END DiemIris ___________________"""
 
 
@@ -5161,6 +5330,34 @@ def diemLongFromPlotPrep(prepped, chrom_indices=None):
         length_of_chromosomes=prepped.length_of_chromosomes,
         chrom_indices=chrom_indices,
     )
+
+
+def diemLongFromDiemType(
+    plot_theme,
+    diem_obj,
+    di_threshold,
+    genome_pixels,
+    ticks,
+    smooth=None,
+    chrom_indices=None,
+):
+    """
+    Convenience wrapper: build plotting prep from a polarized DiemType object
+    and render a long plot in one call.
+
+    Returns:
+        DiemPlotPrep object used for plotting.
+    """
+    prepped = diemPlotPrepFromDiemType(
+        plot_theme=plot_theme,
+        diem_obj=diem_obj,
+        di_threshold=di_threshold,
+        genome_pixels=genome_pixels,
+        ticks=ticks,
+        smooth=smooth,
+    )
+    diemLongFromPlotPrep(prepped, chrom_indices=chrom_indices)
+    return prepped
 
 
 """________________________________________ END diemLongPlot ___________________"""

@@ -325,9 +325,9 @@ def update_meta(metaFilePathIn, metaFilePathOut,ploidyFilePath=None, recFilePath
                 print(f"\t{chrom}: {rec_dict[chrom]}")
                 df_meta.loc[df_meta['#Chrom'] == chrom, 'relativeRecRates'] = rec_dict[chrom]
 
-        # Write updated metadata to output file
-        df_meta.to_csv(metaFilePathOut, sep='\t', index=False)
-        print(f"\n done updating recobination rates")
+    # Write updated metadata to output file
+    df_meta.to_csv(metaFilePathOut, sep='\t', index=False)
+    print(f"\n done updating recobination rates")
 
     print(f"\nUpdated metadata saved to {metaFilePathOut}")
 

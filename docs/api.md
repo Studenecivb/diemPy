@@ -51,7 +51,7 @@ This is the API
 ## plots submodule
 ```{eval-rst}
 .. automodule:: diempy.plots
-    :members: GenomeSummaryPlot, GenomeMultiSummaryPlot,GenomicDeFinettiPlot, GenomicMultiDeFinettiPlot, GenomicContributionsPlot, diemPairsPlot, diemMultiPairsPlot, diemPlotPrepFromBedMeta, diemIrisFromPlotPrep, diemLongFromPlotPrep
+    :members: GenomeSummaryPlot, GenomeMultiSummaryPlot,GenomicDeFinettiPlot, GenomicMultiDeFinettiPlot, GenomicContributionsPlot, diemPairsPlot, diemMultiPairsPlot, diemPlotPrepFromDiemType, diemPlotPrepFromBedMeta, diemIrisFromDiemType, diemIrisFromPlotPrep, diemLongFromDiemType, diemLongFromPlotPrep
 ```
 
 This is the end of the API documentation

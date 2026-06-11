@@ -414,11 +414,30 @@ def run_em_parallel(
 
     history = {}
     polarityFound = False
+    historyIndex = None
 
-    for i in range(maxItt):
+    for i in range(maxItt+1):
+
+        if i == maxItt:
+            print()
+            print("CAUTION! No polarity found after ", maxItt, " iterations")
+            print("returning the state after the final iteration")
+            print("consider increasing maxItt or checking the input data")
+            print()
+            
+            break
+
+
+        # More efficient polarity counting using shared memory directly
+        np0 = np.sum(Pol_cat_shared == 0)
+        np1 = np.sum(Pol_cat_shared == 1)
+        print('after ',i,' EM steps ','  num 0 polarity = ', np0, '  num 1 polarity = ', np1)
+
         start = time.time()
         if polarityFound:
             print("polarity found")
+            print('the state after ', i, ' iterations is the same as the state after ', historyIndex, ' iterations')
+            #print("state after match found to step ", historyIndex)
             break
 
         # Memory optimized: use views instead of copies for iteration calculations
@@ -431,10 +450,7 @@ def run_em_parallel(
         history[pol_hash] = i
         
     
-        # More efficient polarity counting using shared memory directly
-        np0 = np.sum(Pol_cat_shared == 0)
-        np1 = np.sum(Pol_cat_shared == 1)
-        print('iteration ',i,'  num 0 polarity = ', np0, '  num 1 polarity = ', np1)
+
 
         # getting I4 and A4 over all chromosomes - memory efficient single pass
         # taking care to subset sites we consider for barrier
@@ -484,7 +500,8 @@ def run_em_parallel(
                  for lim in jobList]
             )
         # uncomment this to see time for flipping step
-        print('time to flip: ', time.time() - startFlipTime)
+        if i == 0:
+            print('time to flip: ', time.time() - startFlipTime)
 
         k = Pol_cat_shared.tobytes()
         k = hashlib.sha256(k).hexdigest()
@@ -494,10 +511,14 @@ def run_em_parallel(
 
         if k in history:
             polarityFound = True
-            print("polarity found")
+            historyIndex = history[k]
+            # print("polarity found")
+            # print("history index is ", history[k])
         if kAlt in history:
             polarityFound = True
-            print("polarity found (alt)")
+            historyIndex = history[kAlt]
+            # print("polarity found (alt)")
+            # print("history index is ", history[kAlt])
         
         # for testing:
         
