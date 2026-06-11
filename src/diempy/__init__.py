@@ -71,8 +71,11 @@ from .plots import IndGenomicContributionsPlot
 from .plots import diemPairsPlot
 from .plots import diemMultiPairsPlot
 
+from .plots import diemPlotPrepFromDiemType
 from .plots import diemPlotPrepFromBedMeta
+from .plots import diemIrisFromDiemType
 from .plots import diemIrisFromPlotPrep
+from .plots import diemLongFromDiemType
 from .plots import diemLongFromPlotPrep
 
 # diem2fasta
