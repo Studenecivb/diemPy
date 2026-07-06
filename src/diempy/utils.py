@@ -40,6 +40,19 @@ TICK_LABEL_FONTSIZE = 11
 AXIS_FONTWEIGHT = 'bold'
 
 
+def _save_figure_with_inferred_format(fig, outputPath):
+    # Use filename extension to choose output format when provided.
+    output_path_str = os.fspath(outputPath)
+    _, extension = os.path.splitext(output_path_str)
+    if extension:
+        format_name = extension[1:].lower()
+        if format_name == 'jpg':
+            format_name = 'jpeg'
+        fig.savefig(output_path_str, bbox_inches='tight', format=format_name)
+    else:
+        fig.savefig(output_path_str, bbox_inches='tight')
+
+
 '''
 Some utility functions for working with the data and results
 '''
@@ -78,7 +91,7 @@ def plot_painting(diemMatrix,names=None,figSize = None,outputPath=None):
     _style_axis_text(ax)
     
     if outputPath is not None:
-        plt.savefig(outputPath,bbox_inches='tight')
+        _save_figure_with_inferred_format(fig, outputPath)
 
 
     plt.show()
@@ -157,7 +170,7 @@ def plot_painting_with_positions(diemMatrix, positions,markerWidth=25,figSize = 
     _style_axis_text(ax)
     
     if outputPath is not None:
-        plt.savefig(outputPath,bbox_inches='tight')
+        _save_figure_with_inferred_format(fig, outputPath)
 
     #plt.tight_layout()
     plt.show()
