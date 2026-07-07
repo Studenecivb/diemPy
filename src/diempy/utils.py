@@ -40,6 +40,19 @@ TICK_LABEL_FONTSIZE = 11
 AXIS_FONTWEIGHT = 'bold'
 
 
+def _save_figure_with_inferred_format(fig, outputPath):
+    # Use filename extension to choose output format when provided.
+    output_path_str = os.fspath(outputPath)
+    _, extension = os.path.splitext(output_path_str)
+    if extension:
+        format_name = extension[1:].lower()
+        if format_name == 'jpg':
+            format_name = 'jpeg'
+        fig.savefig(output_path_str, bbox_inches='tight', format=format_name)
+    else:
+        fig.savefig(output_path_str, bbox_inches='tight')
+
+
 '''
 Some utility functions for working with the data and results
 '''
@@ -78,7 +91,7 @@ def plot_painting(diemMatrix,names=None,figSize = None,outputPath=None):
     _style_axis_text(ax)
     
     if outputPath is not None:
-        plt.savefig(outputPath,bbox_inches='tight')
+        _save_figure_with_inferred_format(fig, outputPath)
 
 
     plt.show()
@@ -157,7 +170,7 @@ def plot_painting_with_positions(diemMatrix, positions,markerWidth=25,figSize = 
     _style_axis_text(ax)
     
     if outputPath is not None:
-        plt.savefig(outputPath,bbox_inches='tight')
+        _save_figure_with_inferred_format(fig, outputPath)
 
     #plt.tight_layout()
     plt.show()
@@ -244,47 +257,6 @@ def count_site_differences(dmbc1,dmbc2):
         kdiffs += np.sum(chr1 != chr2)
 
     return kdiffs
-
-# some functions below used to make dataframes for investigating the effect of thresholding and stuff like that
-# these are not currently incorporated into the main workflow but were used, e.g., in making the eseb poster
-# and they should be incorporated properly in the data analysis procedure. 
-
-# DS: We used this for Zia's project for exploratory analysis, but I don't think it is needed or wanted for the main workflow
-# def remove_missing(stateMatrixByChr, positionsByChr, polarityByChr, DIByChr, mapPosByChr):
-
-#     smbc = []
-#     posbc = []
-#     polbc = []
-#     dibc = []
-#     mpbc = []
-
-#     for idx in range(len(stateMatrixByChr)):
-#         sm = stateMatrixByChr[idx]
-#         pos = positionsByChr[idx]
-#         pol = polarityByChr[idx]
-#         DI = DIByChr[idx]
-#         mapPos = mapPosByChr[idx]
-        
-#         trans = sm.transpose()
-#         thisFilter = trans==0
-#         thisFilter = np.array([sum(x)==0 for x in thisFilter])
-
-#         trans = trans[thisFilter]
-#         sm = trans.transpose()
-#         pos = pos[thisFilter]
-#         pol = pol[thisFilter]
-#         DI = DI[thisFilter]
-#         mapPos = mapPos[thisFilter]
-
-#         smbc.append(sm)
-#         posbc.append(pos)
-#         polbc.append(pol)
-#         dibc.append(DI)
-#         mpbc.append(mapPos)
-
-#     return smbc,posbc,polbc,dibc,mpbc
-    
-
 
 
 # below are some functions for doing basic plotting, but they are to be superceded by more advanced methods in other packages, at lesat for the advanced plotting for publication-level figures
@@ -379,22 +351,7 @@ def get_intro_amt_and_bias(lv,rv,brakeIdx,conf):
     totb = -(lb - rb)
     return introAmount,totb
 
-# def get_thresholds(SMBC_,DIBC_):
-#     sm = np.hstack(SMBC_)
-#     smt = sm.transpose()
-#     dis = np.concat(DIBC_)
-#     bestIdx = np.argmax(dis)
-#     idealMarker = smt[bestIdx]
-#     kmax = len(idealMarker)
-#     DIbyDiffs = np.zeros(kmax+1)
-    
-#     for idx,markerConfig in enumerate(smt):
-        
-#         kDiffs = sum(markerConfig != idealMarker)
-#         thisDI = dis[idx]
-#         if thisDI < DIbyDiffs[kDiffs]:
-#             DIbyDiffs[kDiffs] = thisDI
-#     return idealMarker, [[k,d] for k, d in enumerate(DIbyDiffs)]
+
 
 #this function possibly made for Zia's project specifically, I don't recal. 
 def calc_contig_his(SMBC,sexPloidy,autoPloidy,isSexChr):

@@ -206,7 +206,7 @@ def compare_DiemTypes(dTest,dSolution):
 def compare_intervals(iv1,iv2):
     # compares two Interval objects
     # returns True if they are the same, False otherwise
-    attrs = ['chrName','indName','idxl','idxr','l','r','state']
+    attrs = ['chrName','indName','idxl','idxr','l','r','mapl','mapr','span','mapspan','state']
     for attr in attrs:
         if getattr(iv1,attr) != getattr(iv2,attr):
             print("Attribute ",attr," differs: ",getattr(iv1,attr)," vs ",getattr(iv2,attr))

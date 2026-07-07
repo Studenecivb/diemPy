@@ -18,7 +18,7 @@ import pandas as pd
 # from . import smooth as ks
 
 # left and right indices are inclusive. So interval is [l,r] inclusive of both ends.
-def get_intervals(chrName, indName, statesList, posList, includeSingle = True):
+def get_intervals(chrName, indName, statesList, posList, mapPosList=None, includeSingle = True):
     '''
     Function to get intervals for a given contig from states and positions. 
     single site intervals can be included or excluded. By default they are included.
@@ -29,7 +29,7 @@ def get_intervals(chrName, indName, statesList, posList, includeSingle = True):
         indName (str): Individual name.
         statesList (list): List of states at each site for this individual and chromosome.
         posList (list): List of positions.
-        mapPosList (list): List of map positions.
+        mapPosList (list, optional): List of map positions in the same order as posList.
 
     Returns:
         list: List of intervals.
@@ -48,7 +48,9 @@ def get_intervals(chrName, indName, statesList, posList, includeSingle = True):
         if ridx == len(statesList)-1:
             l = posList[lidx]
             r = posList[ridx]
-            iv = Interval(chrName, indName, lidx, ridx, l, r, currentState)
+            mapl = mapPosList[lidx] if mapPosList is not None else None
+            mapr = mapPosList[ridx] if mapPosList is not None else None
+            iv = Interval(chrName, indName, lidx, ridx, l, r, currentState, mapl=mapl, mapr=mapr)
 
             if includeSingle == True:
                 ivls.append(iv)
@@ -62,8 +64,10 @@ def get_intervals(chrName, indName, statesList, posList, includeSingle = True):
         else:
             l = posList[lidx]
             r = posList[ridx]
+            mapl = mapPosList[lidx] if mapPosList is not None else None
+            mapr = mapPosList[ridx] if mapPosList is not None else None
 
-            iv = Interval(chrName, indName, lidx, ridx, l, r, currentState)
+            iv = Interval(chrName, indName, lidx, ridx, l, r, currentState, mapl=mapl, mapr=mapr)
 
             if includeSingle == True:
                 ivls.append(iv)
@@ -94,6 +98,8 @@ class Interval:
         l (float): Left position (physical).
         r (float): Right position (physical).
         state (int): State of the interval.
+        mapl (float, optional): Left position on map scale.
+        mapr (float, optional): Right position on map scale.
 
     :ivar str chrName: Chromosome name.
     :ivar str indName: Individual name.
@@ -101,11 +107,15 @@ class Interval:
     :ivar int idxr: Right index (inclusive). So slice of state matrix would be [idxl:idxr+1]
     :ivar float l: Left position (physical).
     :ivar float r: Right position (physical).
+    :ivar float mapl: Left position on map scale.
+    :ivar float mapr: Right position on map scale.
+    :ivar float span: Physical span of the interval (r-l).
+    :ivar float mapspan: Map span of the interval (mapr-mapl).
     :ivar int state: State of the interval.
 
     '''
 
-    def __init__(self,chrName,indName,idxl,idxr,l,r,state):
+    def __init__(self,chrName,indName,idxl,idxr,l,r,state,mapl=None,mapr=None):
 
         self.chrName = chrName
         self.indName = indName
@@ -113,18 +123,16 @@ class Interval:
         self.idxr = idxr
         self.l = l
         self.r = r
+        self.mapl = mapl
+        self.mapr = mapr
+        self.span = None if (self.l is None or self.r is None) else (self.r - self.l)
+        self.mapspan = None if (self.mapl is None or self.mapr is None) else (self.mapr - self.mapl)
         self.state = state
 
 
 
     def info(self):
-        print(f"chr = {self.chrName}, ind = {self.indName}, idxl = {self.idxl}, idxr = {self.idxr}, l = {self.l}, r = {self.r}, state = {self.state}")
-
-    def span(self):
-        return self.r - self.l
-    
-    def mapSpan(self,chrLength):
-        return (self.r - self.l)/chrLength # in on a 'unit map length' scale, i.e. 0 to 1
+        print(f"chr = {self.chrName}, ind = {self.indName}, idxl = {self.idxl}, idxr = {self.idxr}, l = {self.l}, r = {self.r}, mapl = {self.mapl}, mapr = {self.mapr}, span = {self.span}, mapspan = {self.mapspan}, state = {self.state}")
     
 
     
@@ -207,6 +215,12 @@ def unpack_interval(d):
     blankArgs = [None for _ in range(7)]
     i = Interval(*blankArgs)
     i.__dict__.update(d)
+    if not hasattr(i, 'span'):
+        i.span = None if (i.l is None or i.r is None) else (i.r - i.l)
+    if not hasattr(i, 'mapspan'):
+        mapl = getattr(i, 'mapl', None)
+        mapr = getattr(i, 'mapr', None)
+        i.mapspan = None if (mapl is None or mapr is None) else (mapr - mapl)
     return i
 
 def pack_intervalList(ivl):
@@ -295,12 +309,13 @@ def build_contig_matrix(diemType,includeSingle = True):
 
     for cIdx in range(nChrs):
         chrName = diemType.chrNames[cIdx]
+        mapPosList = diemType.MapBC[cIdx] if diemType.MapBC is not None else None
         for indIdx in range(nInds):
             indName = diemType.indNames[indIdx]
             statesList = diemType.DMBC[cIdx][indIdx]
             posList = diemType.posByChr[cIdx]
 
-            ivl = get_intervals(chrName, indName, statesList, posList, includeSingle=includeSingle)
+            ivl = get_intervals(chrName, indName, statesList, posList, mapPosList=mapPosList, includeSingle=includeSingle)
             contig = Contig(chrName, indName, ivl)
             cArr[cIdx, indIdx] = contig
 

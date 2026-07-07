@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "diempy"
-version = "1.0.3"
+version = "1.0.4"
 authors = [
   { name="Derek Setter", email="derek.setter@gmail.com" },
   { name = "Stuart J.E. Baird"}
